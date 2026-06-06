@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GYM TRACKER — Carga Progresiva</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0b;
+    --surface: #111113;
+    --card: #18181c;
+    --border: #2a2a30;
+    --accent: #e8ff47;
+    --accent2: #ff4757;
+    --accent3: #47b8ff;
+    --text: #f0f0f0;
+    --muted: #6b6b7a;
+    --green: #2ecc71;
+    --orange: #f39c12;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 1.5rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem;
+    letter-spacing: 3px;
+    color: var(--accent);
+  }
+
+  .logo span { color: var(--text); }
+
+  .week-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    background: var(--card);
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+  }
+
+  /* MAIN */
+  main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem 3rem;
+  }
+
+  /* DAY SELECTOR */
+  .day-selector {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+    scrollbar-width: none;
+  }
+
+  .day-btn {
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .day-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .day-btn.active {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+  }
+  .day-btn.rest { border-color: #333; }
+  .day-btn.rest.active { background: var(--muted); color: #000; }
+
+  /* DAY VIEW */
+  .day-view { display: none; }
+  .day-view.active { display: block; }
+
+  .day-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .day-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.2rem;
+    letter-spacing: 2px;
+    line-height: 1;
+  }
+
+  .day-muscles {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+
+  .muscle-tag {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .tag-pecho { background: rgba(255,71,87,0.15); color: #ff6b7a; border: 1px solid rgba(255,71,87,0.3); }
+  .tag-espalda { background: rgba(71,184,255,0.15); color: #47b8ff; border: 1px solid rgba(71,184,255,0.3); }
+  .tag-pierna { background: rgba(46,204,113,0.15); color: #2ecc71; border: 1px solid rgba(46,204,113,0.3); }
+  .tag-hombro { background: rgba(232,255,71,0.15); color: #e8ff47; border: 1px solid rgba(232,255,71,0.3); }
+  .tag-brazo { background: rgba(243,156,18,0.15); color: #f39c12; border: 1px solid rgba(243,156,18,0.3); }
+  .tag-triceps { background: rgba(155,89,182,0.15); color: #c39bd3; border: 1px solid rgba(155,89,182,0.3); }
+  .tag-descanso { background: rgba(107,107,122,0.15); color: var(--muted); border: 1px solid var(--border); }
+
+  /* TIP BOX */
+  .tip-box {
+    background: rgba(232,255,71,0.05);
+    border: 1px solid rgba(232,255,71,0.2);
+    border-left: 3px solid var(--accent);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 0.82rem;
+    color: #ccc;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+  }
+
+  .tip-box strong { color: var(--accent); }
+
+  /* EXERCISE CARD */
+  .exercise-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .exercise-card:hover { border-color: #333; }
+
+  .exercise-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.9rem 1rem;
+    cursor: pointer;
+    gap: 0.75rem;
+  }
+
+  .ex-left { display: flex; align-items: center; gap: 0.75rem; flex: 1; min-width: 0; }
+
+  .ex-number {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    width: 20px;
+    flex-shrink: 0;
+  }
+
+  .ex-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ex-schema {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--accent);
+    background: rgba(232,255,71,0.08);
+    padding: 3px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .ex-toggle {
+    color: var(--muted);
+    font-size: 0.8rem;
+    transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+
+  .exercise-card.expanded .ex-toggle { transform: rotate(180deg); }
+
+  /* SETS TABLE */
+  .sets-section {
+    display: none;
+    padding: 0 1rem 1rem;
+    border-top: 1px solid var(--border);
+    padding-top: 0.75rem;
+  }
+
+  .exercise-card.expanded .sets-section { display: block; }
+
+  .sets-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 0.75rem;
+  }
+
+  .sets-table th {
+    text-align: left;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 0 6px 6px;
+  }
+
+  .sets-table td { padding: 4px 6px; }
+
+  .set-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    width: 30px;
+  }
+
+  .weight-input, .reps-input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    width: 70px;
+    outline: none;
+    transition: border-color 0.2s;
+    text-align: center;
+  }
+
+  .weight-input:focus, .reps-input:focus { border-color: var(--accent); }
+  .reps-input { width: 55px; }
+
+  .done-check {
+    width: 22px;
+    height: 22px;
+    appearance: none;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .done-check:checked {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .done-check:checked::after {
+    content: '✓';
+    position: absolute;
+    color: #000;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  tr.set-done td { opacity: 0.45; }
+  tr.set-done td:last-child { opacity: 1; }
+
+  /* PROGRESS INDICATOR */
+  .progress-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    margin-top: 0.5rem;
+  }
+
+  .progress-bar {
+    flex: 1;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.3s;
+  }
+
+  .progress-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  /* OVERLOAD ALERT */
+  .overload-alert {
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(46,204,113,0.1);
+    border: 1px solid rgba(46,204,113,0.3);
+    border-radius: 8px;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.78rem;
+    color: var(--green);
+    margin-top: 0.6rem;
+  }
+
+  .overload-alert.show { display: flex; }
+  .overload-alert .alert-icon { font-size: 1rem; }
+
+  /* NOTES */
+  .ex-notes {
+    font-size: 0.75rem;
+    color: var(--muted);
+    line-height: 1.5;
+    margin-top: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--surface);
+    border-radius: 6px;
+    border-left: 2px solid var(--border);
+  }
+
+  /* SESSION STATS */
+  .session-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.9rem 1rem;
+    text-align: center;
+  }
+
+  .stat-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.8rem;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 0.65rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-top: 2px;
+  }
+
+  /* FINISH BTN */
+  .finish-btn {
+    width: 100%;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 10px;
+    padding: 1rem;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.3rem;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    margin-top: 1.5rem;
+  }
+
+  .finish-btn:hover { opacity: 0.9; }
+
+  /* REST SCREEN */
+  .rest-screen {
+    text-align: center;
+    padding: 3rem 1rem;
+  }
+
+  .rest-screen .rest-emoji { font-size: 4rem; margin-bottom: 1rem; }
+
+  .rest-screen h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 2px;
+    margin-bottom: 1rem;
+  }
+
+  .rest-screen p {
+    color: var(--muted);
+    font-size: 0.9rem;
+    max-width: 400px;
+    margin: 0 auto 1.5rem;
+    line-height: 1.6;
+  }
+
+  .rest-tips {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    text-align: left;
+    max-width: 450px;
+    margin: 0 auto;
+  }
+
+  .rest-tips h3 {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 0.75rem;
+  }
+
+  .rest-tips li {
+    font-size: 0.82rem;
+    color: #ccc;
+    margin-bottom: 0.4rem;
+    padding-left: 1rem;
+    position: relative;
+    list-style: none;
+    line-height: 1.4;
+  }
+
+  .rest-tips li::before { content: '→'; position: absolute; left: 0; color: var(--accent); }
+
+  /* TIMER */
+  .rest-timer {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 3rem;
+    color: var(--accent);
+    margin: 1rem 0;
+    letter-spacing: 4px;
+  }
+
+  .timer-btn {
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.82rem;
+    margin: 0 4px;
+    transition: all 0.2s;
+  }
+
+  .timer-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* HISTORY MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 200;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 520px;
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 1.5rem;
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+  }
+
+  .modal-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.5rem;
+    letter-spacing: 2px;
+  }
+
+  .modal-close {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 4px;
+  }
+
+  .history-entry {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.82rem;
+  }
+
+  .history-date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-bottom: 0.25rem;
+  }
+
+  /* BOTTOM NAV ACTIONS */
+  .bottom-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .action-btn {
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .action-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* OVERLOAD RULE */
+  .overload-rule {
+    background: rgba(71,184,255,0.05);
+    border: 1px solid rgba(71,184,255,0.15);
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.78rem;
+    color: #bbb;
+    line-height: 1.6;
+  }
+
+  .overload-rule strong { color: var(--accent3); }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--accent);
+    color: #000;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.82rem;
+    z-index: 300;
+    transition: transform 0.3s;
+    white-space: nowrap;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 480px) {
+    .day-title { font-size: 1.7rem; }
+    .session-stats { grid-template-columns: repeat(3, 1fr); }
+    .stat-value { font-size: 1.4rem; }
+    .weight-input { width: 58px; }
+    .reps-input { width: 48px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">GYM<span>TRACKER</span></div>
+  <div class="week-badge" id="weekBadge">Semana 1</div>
+</header>
+
+<main>
+
+  <!-- DAY SELECTOR -->
+  <div class="day-selector" id="daySelector">
+    <button class="day-btn" data-day="lunes" onclick="switchDay('lunes')">LUN</button>
+    <button class="day-btn" data-day="martes" onclick="switchDay('martes')">MAR</button>
+    <button class="day-btn" data-day="miercoles" onclick="switchDay('miercoles')">MIÉ</button>
+    <button class="day-btn" data-day="jueves" onclick="switchDay('jueves')">JUE</button>
+    <button class="day-btn" data-day="viernes" onclick="switchDay('viernes')">VIE</button>
+    <button class="day-btn" data-day="sabado" onclick="switchDay('sabado')">SÁB</button>
+    <button class="day-btn rest" data-day="domingo" onclick="switchDay('domingo')">DOM</button>
+  </div>
+
+  <!-- DAYS -->
+  <div id="day-lunes" class="day-view">
+    <div class="day-header">
+      <div>
+        <div class="day-title">LUNES</div>
+        <div class="day-muscles">
+          <span class="muscle-tag tag-pecho">PECHO</span>
+          <span class="muscle-tag tag-triceps">TRÍCEPS</span>
+          <span class="muscle-tag tag-brazo">BÍCEPS</span>
+        </div>
+      </div>
+    </div>
+    <div class="tip-box">
+      <strong>💡 Mejora sugerida:</strong> Tu lunes solo tiene press, agrega una variante de aislamiento y termina con superseries pecho+tríceps para más volumen en menos tiempo.
+    </div>
+    <div class="session-stats">
+      <div class="stat-card"><div class="stat-value" id="lunes-sets">0</div><div class="stat-label">Series</div></div>
+      <div class="stat-card"><div class="stat-value" id="lunes-vol">0</div><div class="stat-label">Vol (kg)</div></div>
+      <div class="stat-card"><div class="stat-value" id="lunes-done">0%</div><div class="stat-label">Progreso</div></div>
+    </div>
+    <div class="bottom-actions">
+      <button class="action-btn" onclick="openHistory('lunes')">📊 Historial</button>
+      <button class="action-btn" onclick="openTimer()">⏱ Descanso</button>
+      <button class="action-btn" onclick="clearDay('lunes')">🗑 Limpiar</button>
+    </div>
+    <div id="exercises-lunes"></div>
+    <button class="finish-btn" onclick="finishSession('lunes')">FINALIZAR SESIÓN →</button>
+  </div>
+
+  <div id="day-martes" class="day-view">
+    <div class="day-header">
+      <div>
+        <div class="day-title">MARTES</div>
+        <div class="day-muscles">
+          <span class="muscle-tag tag-espalda">ESPALDA</span>
+          <span class="muscle-tag tag-hombro">HOMBRO</span>
+        </div>
+      </div>
+    </div>
+    <div class="tip-box">
+      <strong>💡 Mejora sugerida:</strong> Separar espalda y hombro en días distintos te daría mejor calidad de entrenamiento. Por ahora: espalda primero y termina con hombros cuando ya estés algo fatigado (está bien para volumen).
+    </div>
+    <div class="session-stats">
+      <div class="stat-card"><div class="stat-value" id="martes-sets">0</div><div class="stat-label">Series</div></div>
+      <div class="stat-card"><div class="stat-value" id="martes-vol">0</div><div class="stat-label">Vol (kg)</div></div>
+      <div class="stat-card"><div class="stat-value" id="martes-done">0%</div><div class="stat-label">Progreso</div></div>
+    </div>
+    <div class="bottom-actions">
+      <button class="action-btn" onclick="openHistory('martes')">📊 Historial</button>
+      <button class="action-btn" onclick="openTimer()">⏱ Descanso</button>
+      <button class="action-btn" onclick="clearDay('martes')">🗑 Limpiar</button>
+    </div>
+    <div id="exercises-martes"></div>
+    <button class="finish-btn" onclick="finishSession('martes')">FINALIZAR SESIÓN →</button>
+  </div>
+
+  <div id="day-miercoles" class="day-view">
+    <div class="day-header">
+      <div>
+        <div class="day-title">MIÉRCOLES</div>
+        <div class="day-muscles">
+          <span class="muscle-tag tag-pierna">PIERNA</span>
+        </div>
+      </div>
+    </div>
+    <div class="tip-box">
+      <strong>💡 Mejora sugerida:</strong> Agrega pantorrillas al final. Cambia el orden: Sentadillas → Peso muerto → Prensa → Zancadas → Accesorios. Así los grandes primero con más energía.
+    </div>
+    <div class="session-stats">
+      <div class="stat-card"><div class="stat-value" id="miercoles-sets">0</div><div class="stat-label">Series</div></div>
+      <div class="stat-card"><div class="stat-value" id="miercoles-vol">0</div><div class="stat-label">Vol (kg)</div></div>
+      <div class="stat-card"><div class="stat-value" id="miercoles-done">0%</div><div class="stat-label">Progreso</div></div>
+    </div>
+    <div class="bottom-actions">
+      <button class="action-btn" onclick="openHistory('miercoles')">📊 Historial</button>
+      <button class="action-btn" onclick="openTimer()">⏱ Descanso</button>
+      <button class="action-btn" onclick="clearDay('miercoles')">🗑 Limpiar</button>
+    </div>
+    <div id="exercises-miercoles"></div>
+    <button class="finish-btn" onclick="finishSession('miercoles')">FINALIZAR SESIÓN →</button>
+  </div>
+
+  <div id="day-jueves" class="day-view">
+    <div class="day-header">
+      <div>
+        <div class="day-title">JUEVES</div>
+        <div class="day-muscles">
+          <span class="muscle-tag tag-pecho">PECHO</span>
+          <span class="muscle-tag tag-hombro">HOMBRO</span>
+          <span class="muscle-tag tag-triceps">TRÍCEPS</span>
+        </div>
+      </div>
+    </div>
+    <div class="tip-box">
+      <strong>💡 Mejora sugerida:</strong> El jueves repites demasiado del lunes. Aquí enfócate en <strong>variantes diferentes</strong>: press inclinado mancuernas, aperturas, hombro lateral y fondos lastrados. Diferente estímulo = más crecimiento.
+    </div>
+    <div class="session-stats">
+      <div class="stat-card"><div class="stat-value" id="jueves-sets">0</div><div class="stat-label">Series</div></div>
+      <div class="stat-card"><div class="stat-value" id="jueves-vol">0</div><div class="stat-label">Vol (kg)</div></div>
+      <div class="stat-card"><div class="stat-value" id="jueves-done">0%</div><div class="stat-label">Progreso</div></div>
+    </div>
+    <div class="bottom-actions">
+      <button class="action-btn" onclick="openHistory('jueves')">📊 Historial</button>
+      <button class="action-btn" onclick="openTimer()">⏱ Descanso</button>
+      <button class="action-btn" onclick="clearDay('jueves')">🗑 Limpiar</button>
+    </div>
+    <div id="exercises-jueves"></div>
+    <button class="finish-btn" onclick="finishSession('jueves')">FINALIZAR SESIÓN →</button>
+  </div>
+
+  <div id="day-viernes" class="day-view">
+    <div class="day-header">
+      <div>
+        <div class="day-title">VIERNES</div>
+        <div class="day-muscles">
+          <span class="muscle-tag tag-espalda">ESPALDA</span>
+          <span class="muscle-tag tag-brazo">BÍCEPS</span>
+          <span class="muscle-tag tag-hombro">HOMBRO</span>
+        </div>
+      </div>
+    </div>
+    <div class="tip-box">
+      <strong>💡 Mejora sugerida:</strong> Buen día de jalas + brazos. Aumenta las dominadas gradualmente añadiendo peso o llegando a 5×5. Los encogimientos bájales a 15 reps pero con más peso para mejor activación del trapecio.
+    </div>
+    <div class="session-stats">
+      <div class="stat-card"><div class="stat-value" id="viernes-sets">0</div><div class="stat-label">Series</div></div>
+      <div class="stat-card"><div class="stat-value" id="viernes-vol">0</div><div class="stat-label">Vol (kg)</div></div>
+      <div class="stat-card"><div class="stat-value" id="viernes-done">0%</div><div class="stat-label">Progreso</div></div>
+    </div>
+    <div class="bottom-actions">
+      <button class="action-btn" onclick="openHistory('viernes')">📊 Historial</button>
+      <button class="action-btn" onclick="openTimer()">⏱ Descanso</button>
+      <button class="action-btn" onclick="clearDay('viernes')">🗑 Limpiar</button>
+    </div>
+    <div id="exercises-viernes"></div>
+    <button class="finish-btn" onclick="finishSession('viernes')">FINALIZAR SESIÓN →</button>
+  </div>
+
+  <div id="day-sabado" class="day-view">
+    <div class="day-header">
+      <div>
+        <div class="day-title">SÁBADO</div>
+        <div class="day-muscles">
+          <span class="muscle-tag tag-pierna">PIERNA</span>
+          <span class="muscle-tag tag-brazo">BRAZOS</span>
+        </div>
+      </div>
+    </div>
+    <div class="tip-box">
+      <strong>💡 Sábado nuevo:</strong> Hoy descansaste pierna desde el miércoles (3 días). Ideal para una sesión de pierna ligera + brazos completos. Si prefieres, también puede ser un día de cardio + core.
+    </div>
+    <div class="session-stats">
+      <div class="stat-card"><div class="stat-value" id="sabado-sets">0</div><div class="stat-label">Series</div></div>
+      <div class="stat-card"><div class="stat-value" id="sabado-vol">0</div><div class="stat-label">Vol (kg)</div></div>
+      <div class="stat-card"><div class="stat-value" id="sabado-done">0%</div><div class="stat-label">Progreso</div></div>
+    </div>
+    <div class="bottom-actions">
+      <button class="action-btn" onclick="openHistory('sabado')">📊 Historial</button>
+      <button class="action-btn" onclick="openTimer()">⏱ Descanso</button>
+      <button class="action-btn" onclick="clearDay('sabado')">🗑 Limpiar</button>
+    </div>
+    <div id="exercises-sabado"></div>
+    <button class="finish-btn" onclick="finishSession('sabado')">FINALIZAR SESIÓN →</button>
+  </div>
+
+  <div id="day-domingo" class="day-view">
+    <div class="rest-screen">
+      <div class="rest-emoji">😴</div>
+      <h2>DESCANSO ACTIVO</h2>
+      <p>El domingo es sagrado. Tu músculo crece cuando descansas, no cuando entrenas. Respétalo.</p>
+      <div class="rest-timer" id="restTimerDisplay">00:00</div>
+      <div>
+        <button class="timer-btn" onclick="startRestTimer(60)">1 min</button>
+        <button class="timer-btn" onclick="startRestTimer(90)">90 seg</button>
+        <button class="timer-btn" onclick="startRestTimer(120)">2 min</button>
+        <button class="timer-btn" onclick="stopRestTimer()">⏹</button>
+      </div>
+      <br>
+      <div class="rest-tips">
+        <h3>Para el descanso</h3>
+        <ul>
+          <li>Camina 20-30 min (recuperación activa)</li>
+          <li>Estira cadena posterior y pectoral</li>
+          <li>Hidratación mínima 2.5L de agua</li>
+          <li>Duerme 7-9 horas para síntesis proteica</li>
+          <li>Come suficiente proteína (1.6-2g/kg peso)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- OVERLOAD RULE MODAL -->
+<div class="modal-overlay" id="historyModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="historyTitle">HISTORIAL</div>
+      <button class="modal-close" onclick="closeHistory()">✕</button>
+    </div>
+    <div class="overload-rule">
+      <strong>📈 Regla de carga progresiva:</strong><br>
+      Cuando completes todas las series con el <strong>rango alto de reps</strong> y buena técnica, <strong>sube el peso 2-5%</strong> la siguiente sesión. Si no llegas al rango bajo, baja el peso 5%.
+    </div>
+    <div id="historyContent"></div>
+  </div>
+</div>
+
+<!-- TIMER MODAL -->
+<div class="modal-overlay" id="timerModal">
+  <div class="modal" style="text-align:center">
+    <div class="modal-header">
+      <div class="modal-title">DESCANSO</div>
+      <button class="modal-close" onclick="closeTimer()">✕</button>
+    </div>
+    <div class="rest-timer" id="timerDisplay">00:00</div>
+    <div style="margin-bottom:1rem;font-size:0.8rem;color:var(--muted)">Selecciona el tiempo de descanso:</div>
+    <div style="display:flex;gap:0.5rem;justify-content:center;flex-wrap:wrap">
+      <button class="timer-btn" onclick="startRestTimer(60)">60 seg</button>
+      <button class="timer-btn" onclick="startRestTimer(90)">90 seg</button>
+      <button class="timer-btn" onclick="startRestTimer(120)">2 min</button>
+      <button class="timer-btn" onclick="startRestTimer(180)">3 min</button>
+      <button class="timer-btn" onclick="stopRestTimer()">⏹ Stop</button>
+    </div>
+    <p style="margin-top:1rem;font-size:0.75rem;color:var(--muted)">Compuestos: 2-3 min · Aislamiento: 60-90 seg</p>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ==================== DATA ====================
+const ROUTINES = {
+  lunes: {
+    name: "LUNES — PECHO · TRÍCEPS · BÍCEPS",
+    exercises: [
+      { id: "l1", name: "Pec Deck (Mariposa)", sets: 4, repRange: "12-15", note: "Control total en la apertura. No rebotar en el punto de estiramiento.", compound: false },
+      { id: "l2", name: "Press Inclinado en Máquina", sets: 4, repRange: "10-12", note: "Agarre medio. Codos a 45° del cuerpo, no abiertos.", compound: true },
+      { id: "l3", name: "Press de Pecho (Máquina)", sets: 3, repRange: "10-12", note: "Nuevo: agrega esto para volumen extra en pecho inferior.", compound: true },
+      { id: "l4", name: "Aperturas con Mancuernas (plano)", sets: 3, repRange: "12-15", note: "NUEVO — excelente para estiramiento y activación. Peso ligero, control.", compound: false },
+      { id: "l5", name: "Fondos en Máquina (Tríceps)", sets: 4, repRange: "12-15", note: "Codos cerca del cuerpo. Pausa de 1 seg arriba.", compound: false },
+      { id: "l6", name: "Jalón de Polea Tríceps (cuerda)", sets: 3, repRange: "12-15", note: "Separa las cuerdas al final del movimiento para más contracción.", compound: false },
+      { id: "l7", name: "Halos con Barra", sets: 3, repRange: "15-20", note: "Peso ligero. Mantén los codos quietos para aislar el tríceps largo.", compound: false },
+      { id: "l8", name: "Curl Martillo (mancuernas)", sets: 3, repRange: "12-15", note: "Braquial + bíceps. Alterna brazos para más control.", compound: false },
+      { id: "l9", name: "Curl con Barra (concentración)", sets: 3, repRange: "10-12", note: "NUEVO — cierra el día bíceps con contracción máxima.", compound: false },
+    ]
+  },
+  martes: {
+    name: "MARTES — ESPALDA · HOMBRO",
+    exercises: [
+      { id: "m1", name: "Jalón a Pecho (barra larga)", sets: 4, repRange: "10-12", note: "Tira desde los codos, no de las manos. Retrae escápulas.", compound: true },
+      { id: "m2", name: "Remo Sentado con Barra Larga", sets: 4, repRange: "10-12", note: "Pecho afuera, espalda recta. Jala al ombligo.", compound: true },
+      { id: "m3", name: "Pull Over con Polea", sets: 3, repRange: "12-15", note: "Excelente para serrato y espalda ancha. Brazos casi extendidos.", compound: false },
+      { id: "m4", name: "Remo en T (máquina)", sets: 3, repRange: "10-12", note: "Carga progresiva clave aquí. Pausa de contracción 1 seg.", compound: true },
+      { id: "m5", name: "Jalón Neutro (agarre cerrado)", sets: 3, repRange: "12-15", note: "NUEVO — más énfasis en dorsal inferior. Diferente al jalón ancho.", compound: true },
+      { id: "m6", name: "Elevaciones Frontales (mancuernas)", sets: 3, repRange: "12-15", note: "Llegua hasta altura de hombro. No balancear el torso.", compound: false },
+      { id: "m7", name: "Elevaciones Laterales (mancuernas)", sets: 4, repRange: "15-20", note: "CLAVE para anchura. Pequeño ángulo de inclinación hacia adelante.", compound: false },
+      { id: "m8", name: "Pájaros en Máquina", sets: 3, repRange: "15-20", note: "Deltoides posterior. Esencial para balance y postura.", compound: false },
+      { id: "m9", name: "Elevaciones al Mentón (barra)", sets: 3, repRange: "12-15", note: "Agarre ancho para más hombro, cerrado para más bíceps.", compound: true },
+    ]
+  },
+  miercoles: {
+    name: "MIÉRCOLES — PIERNA COMPLETA",
+    exercises: [
+      { id: "mi1", name: "Sentadilla en Smith (calentamiento)", sets: 2, repRange: "15-20", note: "Sin carga o muy ligero. Activa el patrón motor.", compound: true },
+      { id: "mi2", name: "Sentadilla en Smith (trabajo)", sets: 4, repRange: "8-12", note: "Profundidad: muslo paralelo al suelo mínimo. Control en la bajada.", compound: true },
+      { id: "mi3", name: "Peso Muerto Rumano", sets: 4, repRange: "10-12", note: "Bisagra de cadera. Sentir el estiramiento en isquios. Espalda neutra.", compound: true },
+      { id: "mi4", name: "Prensa de Pierna", sets: 4, repRange: "12-15", note: "Pies altos y anchos = más glúteo. Pies bajos = más cuádriceps.", compound: true },
+      { id: "mi5", name: "Zancadas con Mancuernas", sets: 3, repRange: "12-15", note: "Pasos largos para más glúteo. Rodilla trasera casi toca el suelo.", compound: true },
+      { id: "mi6", name: "Curl Femoral (máquina)", sets: 4, repRange: "12-15", note: "Aislamiento isquios. Pausa en contracción máxima 1 seg.", compound: false },
+      { id: "mi7", name: "Extensión de Cuádriceps (máquina)", sets: 3, repRange: "15-20", note: "NUEVO — finaliza cuádriceps con bomba de sangre y volumen.", compound: false },
+      { id: "mi8", name: "Aductor (máquina apertura)", sets: 3, repRange: "15-20", note: "Rango completo de movimiento. No rebotes.", compound: false },
+      { id: "mi9", name: "Abductor (máquina cierre)", sets: 3, repRange: "15-20", note: "Complementa al aductor para balance de cadera.", compound: false },
+      { id: "mi10", name: "Pantorrilla de pie (mancuernas)", sets: 4, repRange: "15-20", note: "NUEVO — talones al borde de un escalón. Pausa arriba.", compound: false },
+    ]
+  },
+  jueves: {
+    name: "JUEVES — PECHO VARIANTE · HOMBRO · TRÍCEPS",
+    exercises: [
+      { id: "j1", name: "Press Inclinado con Mancuernas", sets: 4, repRange: "10-12", note: "DIFERENTE al lunes. Mancuernas = mayor rango y estabilización.", compound: true },
+      { id: "j2", name: "Aperturas en Cable (cruce pecho)", sets: 4, repRange: "12-15", note: "DIFERENTE al lunes. Cables = tensión constante todo el recorrido.", compound: false },
+      { id: "j3", name: "Press Declinado Mancuernas", sets: 3, repRange: "10-12", note: "NUEVO — enfatiza pecho inferior. Ángulo 30° hacia abajo.", compound: true },
+      { id: "j4", name: "Press Militar con Mancuernas", sets: 4, repRange: "10-12", note: "NUEVO — más rango que barra. Para deltoides anterior.", compound: true },
+      { id: "j5", name: "Elevaciones Laterales en Cable", sets: 4, repRange: "15-20", note: "Cable = tensión en punto de inicio. Alterna con mancuernas para estímulo diferente.", compound: false },
+      { id: "j6", name: "Fondos Lastrados o Asistidos", sets: 4, repRange: "8-12", note: "CLAVE para romper el estancamiento: agrega discos o usa banda.", compound: true },
+      { id: "j7", name: "Extensión de Tríceps sobre Cabeza", sets: 3, repRange: "12-15", note: "NUEVO — estira la cabeza larga del tríceps. Mancuerna o polea.", compound: false },
+      { id: "j8", name: "Kickback de Tríceps (cable)", sets: 3, repRange: "15-20", note: "Aislamiento final. Mantén el codo quieto todo el tiempo.", compound: false },
+    ]
+  },
+  viernes: {
+    name: "VIERNES — ESPALDA · BÍCEPS · TRAPECIO",
+    exercises: [
+      { id: "v1", name: "Dominadas (peso corporal)", sets: 4, repRange: "5-10", note: "Si llegas a 3×10 seguidos, añade peso. Meta progresiva.", compound: true },
+      { id: "v2", name: "Fondos (peso corporal)", sets: 3, repRange: "8-12", note: "Si llegas a 3×12, añade banda de resistencia o disco.", compound: true },
+      { id: "v3", name: "Remo con Mancuerna (un brazo)", sets: 3, repRange: "10-12", note: "NUEVO — unilateral para corregir asimetrías de espalda.", compound: true },
+      { id: "v4", name: "Curl Bíceps con Barra", sets: 3, repRange: "12-15", note: "Control total. Nada de balancear. 2 seg bajada.", compound: false },
+      { id: "v5", name: "Curl Martillo con Mancuernas", sets: 3, repRange: "12-15", note: "Braquial. Alterna brazos para más control y volumen por brazo.", compound: false },
+      { id: "v6", name: "Curl Concentrado (mancuerna)", sets: 2, repRange: "15-20", note: "NUEVO — aislamiento máximo. Perfecto al final cuando hay fatiga.", compound: false },
+      { id: "v7", name: "Encogimiento de Hombros (mancuernas)", sets: 3, repRange: "12-15", note: "Baja reps, sube el peso. Pausa de 1 seg arriba para activar trapecio.", compound: false },
+      { id: "v8", name: "Jalón de Polea (agarre neutro)", sets: 3, repRange: "12-15", note: "NUEVO — complemento para dorsal y volumen espalda.", compound: false },
+    ]
+  },
+  sabado: {
+    name: "SÁBADO — PIERNA LIGERA · BRAZOS",
+    exercises: [
+      { id: "s1", name: "Leg Press (pie alto-ancho)", sets: 3, repRange: "15-20", note: "Ligero. Glúteo y quad. Activa sin fatigar para la semana siguiente.", compound: true },
+      { id: "s2", name: "Peso Muerto con Mancuernas", sets: 3, repRange: "12-15", note: "Bisagra de cadera controlada. Isquios y glúteo.", compound: true },
+      { id: "s3", name: "Curl Femoral Unilateral", sets: 3, repRange: "12-15", note: "Unilateral para corregir desequilibrios entre piernas.", compound: false },
+      { id: "s4", name: "Pantorrilla sentado (máquina)", sets: 4, repRange: "20-25", note: "Sóleo. Alta repetición para pantorrilla. Pausa arriba.", compound: false },
+      { id: "s5", name: "Curl Bíceps Alternado (mancuernas)", sets: 4, repRange: "10-12", note: "Supina al subir para máxima contracción de bíceps.", compound: false },
+      { id: "s6", name: "Curl Martillo en Cable", sets: 3, repRange: "12-15", note: "Cable = tensión constante. Variante de mancuernas.", compound: false },
+      { id: "s7", name: "Press Francés (mancuerna o barra Z)", sets: 4, repRange: "10-12", note: "CLAVE para tríceps. Baja hasta la frente. Control total.", compound: false },
+      { id: "s8", name: "Jalón Polea Tríceps (barra recta)", sets: 3, repRange: "15-20", note: "Finaliza tríceps con bomba. Codos quietos y pegados.", compound: false },
+    ]
+  }
+};
+
+// ==================== STATE ====================
+let state = {};
+let timerInterval = null;
+let timerSeconds = 0;
+let timerRunning = false;
+
+function loadState() {
+  const saved = localStorage.getItem('gymtracker_v3');
+  if (saved) state = JSON.parse(saved);
+  else state = {};
+}
+
+function saveState() {
+  localStorage.setItem('gymtracker_v3', JSON.stringify(state));
+}
+
+function getKey(day, exId, set) {
+  return `${day}_${exId}_s${set}`;
+}
+
+// ==================== BUILD UI ====================
+function buildExercises(day) {
+  const container = document.getElementById(`exercises-${day}`);
+  if (!container || !ROUTINES[day]) return;
+
+  container.innerHTML = '';
+  ROUTINES[day].exercises.forEach((ex, idx) => {
+    const card = document.createElement('div');
+    card.className = 'exercise-card';
+    card.id = `card-${day}-${ex.id}`;
+
+    let setsHTML = `<table class="sets-table">
+      <thead><tr>
+        <th>SERIE</th>
+        <th>PESO (kg)</th>
+        <th>REPS</th>
+        <th>✓</th>
+      </tr></thead><tbody>`;
+
+    for (let s = 1; s <= ex.sets; s++) {
+      const key = getKey(day, ex.id, s);
+      const saved = state[key] || {};
+      const weightVal = saved.weight || '';
+      const repsVal = saved.reps || '';
+      const doneVal = saved.done ? 'checked' : '';
+      const doneCls = saved.done ? 'set-done' : '';
+
+      setsHTML += `<tr class="${doneCls}" id="tr-${key}">
+        <td class="set-num">S${s}</td>
+        <td><input type="number" class="weight-input" placeholder="kg" value="${weightVal}"
+          oninput="handleInput('${day}','${ex.id}',${s},'weight',this.value)"
+          step="2.5" min="0"></td>
+        <td><input type="number" class="reps-input" placeholder="reps" value="${repsVal}"
+          oninput="handleInput('${day}','${ex.id}',${s},'reps',this.value)"
+          min="0" max="99"></td>
+        <td><input type="checkbox" class="done-check" ${doneVal}
+          onchange="handleDone('${day}','${ex.id}',${s},this.checked)"></td>
+      </tr>`;
+    }
+
+    setsHTML += `</tbody></table>`;
+
+    // Progress bar
+    const done = countDone(day, ex.id, ex.sets);
+    const pct = Math.round((done / ex.sets) * 100);
+
+    card.innerHTML = `
+      <div class="exercise-header" onclick="toggleCard('${day}','${ex.id}')">
+        <div class="ex-left">
+          <span class="ex-number">${String(idx+1).padStart(2,'0')}</span>
+          <span class="ex-name">${ex.name}</span>
+        </div>
+        <span class="ex-schema">${ex.sets}×${ex.repRange}</span>
+        <span class="ex-toggle">▼</span>
+      </div>
+      <div class="sets-section">
+        ${setsHTML}
+        <div class="progress-indicator">
+          <div class="progress-bar"><div class="progress-fill" id="pbar-${day}-${ex.id}" style="width:${pct}%"></div></div>
+          <span class="progress-label" id="plabel-${day}-${ex.id}">${done}/${ex.sets}</span>
+        </div>
+        <div class="overload-alert" id="alert-${day}-${ex.id}">
+          <span class="alert-icon">🔥</span>
+          <span>¡Completo! La próxima sesión <strong>sube el peso 2.5-5%</strong></span>
+        </div>
+        <div class="ex-notes">${ex.note}</div>
+      </div>`;
+
+    container.appendChild(card);
+    if (pct === 100) document.getElementById(`alert-${day}-${ex.id}`).classList.add('show');
+  });
+
+  updateStats(day);
+}
+
+function toggleCard(day, exId) {
+  const card = document.getElementById(`card-${day}-${exId}`);
+  card.classList.toggle('expanded');
+}
+
+// ==================== INPUTS ====================
+function handleInput(day, exId, set, field, value) {
+  const key = getKey(day, exId, set);
+  if (!state[key]) state[key] = {};
+  state[key][field] = value;
+  saveState();
+  updateStats(day);
+}
+
+function handleDone(day, exId, set, checked) {
+  const key = getKey(day, exId, set);
+  if (!state[key]) state[key] = {};
+  state[key].done = checked;
+  saveState();
+
+  const tr = document.getElementById(`tr-${key}`);
+  if (tr) tr.className = checked ? 'set-done' : '';
+
+  const ex = ROUTINES[day].exercises.find(e => e.id === exId);
+  if (ex) updateProgress(day, ex);
+  updateStats(day);
+}
+
+function countDone(day, exId, sets) {
+  let n = 0;
+  for (let s = 1; s <= sets; s++) {
+    const key = getKey(day, exId, s);
+    if (state[key] && state[key].done) n++;
+  }
+  return n;
+}
+
+function updateProgress(day, ex) {
+  const done = countDone(day, ex.id, ex.sets);
+  const pct = Math.round((done / ex.sets) * 100);
+  const bar = document.getElementById(`pbar-${day}-${ex.id}`);
+  const label = document.getElementById(`plabel-${day}-${ex.id}`);
+  const alert = document.getElementById(`alert-${day}-${ex.id}`);
+  if (bar) bar.style.width = pct + '%';
+  if (label) label.textContent = `${done}/${ex.sets}`;
+  if (alert) pct === 100 ? alert.classList.add('show') : alert.classList.remove('show');
+}
+
+// ==================== STATS ====================
+function updateStats(day) {
+  if (!ROUTINES[day]) return;
+  const exs = ROUTINES[day].exercises;
+  let totalSets = 0, totalVol = 0, totalDone = 0, totalPoss = 0;
+
+  exs.forEach(ex => {
+    for (let s = 1; s <= ex.sets; s++) {
+      const key = getKey(day, ex.id, s);
+      const d = state[key] || {};
+      totalPoss++;
+      if (d.done) {
+        totalDone++;
+        const w = parseFloat(d.weight) || 0;
+        const r = parseInt(d.reps) || 0;
+        totalVol += w * r;
+        totalSets++;
+      }
+    }
+    updateProgress(day, ex);
+  });
+
+  const pct = totalPoss > 0 ? Math.round((totalDone / totalPoss) * 100) : 0;
+  const setEl = document.getElementById(`${day}-sets`);
+  const volEl = document.getElementById(`${day}-vol`);
+  const doneEl = document.getElementById(`${day}-done`);
+  if (setEl) setEl.textContent = totalSets;
+  if (volEl) volEl.textContent = totalVol > 0 ? (totalVol >= 1000 ? (totalVol/1000).toFixed(1)+'k' : totalVol) : '0';
+  if (doneEl) doneEl.textContent = pct + '%';
+}
+
+// ==================== DAY SWITCH ====================
+function switchDay(day) {
+  document.querySelectorAll('.day-view').forEach(d => d.classList.remove('active'));
+  document.querySelectorAll('.day-btn').forEach(b => b.classList.remove('active'));
+
+  const view = document.getElementById(`day-${day}`);
+  if (view) view.classList.add('active');
+  document.querySelector(`[data-day="${day}"]`).classList.add('active');
+}
+
+// ==================== FINISH ====================
+function finishSession(day) {
+  const history = JSON.parse(localStorage.getItem('gymtracker_history') || '[]');
+  const date = new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
+
+  const exs = ROUTINES[day].exercises;
+  const summary = exs.map(ex => {
+    const sets = [];
+    for (let s = 1; s <= ex.sets; s++) {
+      const key = getKey(day, ex.id, s);
+      const d = state[key] || {};
+      if (d.done) sets.push(`${d.weight||'?'}kg×${d.reps||'?'}`);
+    }
+    return sets.length ? `${ex.name}: ${sets.join(' / ')}` : null;
+  }).filter(Boolean);
+
+  history.unshift({ date, day, summary });
+  if (history.length > 30) history.pop();
+  localStorage.setItem('gymtracker_history', JSON.stringify(history));
+
+  showToast('✅ Sesión guardada!');
+}
+
+// ==================== HISTORY ====================
+function openHistory(day) {
+  const history = JSON.parse(localStorage.getItem('gymtracker_history') || '[]');
+  const filtered = history.filter(h => h.day === day);
+
+  document.getElementById('historyTitle').textContent = `HISTORIAL — ${day.toUpperCase()}`;
+  const content = document.getElementById('historyContent');
+
+  if (filtered.length === 0) {
+    content.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;text-align:center;padding:1rem">No hay sesiones guardadas aún.<br>Completa una sesión y presiona FINALIZAR.</p>';
+  } else {
+    content.innerHTML = filtered.map(h => `
+      <div class="history-entry">
+        <div class="history-date">${h.date}</div>
+        ${h.summary.map(s => `<div style="font-size:0.8rem;color:#ccc;margin-top:3px">${s}</div>`).join('')}
+      </div>`).join('');
+  }
+
+  document.getElementById('historyModal').classList.add('open');
+}
+
+function closeHistory() {
+  document.getElementById('historyModal').classList.remove('open');
+}
+
+// ==================== TIMER ====================
+function openTimer() {
+  document.getElementById('timerModal').classList.add('open');
+}
+
+function closeTimer() {
+  document.getElementById('timerModal').classList.remove('open');
+  stopRestTimer();
+}
+
+function startRestTimer(secs) {
+  if (timerInterval) clearInterval(timerInterval);
+  timerSeconds = secs;
+  timerRunning = true;
+  updateTimerDisplay();
+
+  timerInterval = setInterval(() => {
+    timerSeconds--;
+    updateTimerDisplay();
+    if (timerSeconds <= 0) {
+      clearInterval(timerInterval);
+      timerRunning = false;
+      showToast('⏰ ¡Descanso terminado!');
+    }
+  }, 1000);
+}
+
+function stopRestTimer() {
+  if (timerInterval) clearInterval(timerInterval);
+  timerRunning = false;
+  timerSeconds = 0;
+  updateTimerDisplay();
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(timerSeconds / 60);
+  const s = timerSeconds % 60;
+  const txt = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  const el1 = document.getElementById('timerDisplay');
+  const el2 = document.getElementById('restTimerDisplay');
+  if (el1) el1.textContent = txt;
+  if (el2) el2.textContent = txt;
+}
+
+// ==================== CLEAR ====================
+function clearDay(day) {
+  if (!confirm('¿Limpiar todos los datos de hoy?')) return;
+  if (!ROUTINES[day]) return;
+  ROUTINES[day].exercises.forEach(ex => {
+    for (let s = 1; s <= ex.sets; s++) {
+      delete state[getKey(day, ex.id, s)];
+    }
+  });
+  saveState();
+  buildExercises(day);
+  showToast('🗑 Sesión limpiada');
+}
+
+// ==================== TOAST ====================
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ==================== WEEK BADGE ====================
+function updateWeekBadge() {
+  const start = new Date('2025-01-06');
+  const now = new Date();
+  const diff = Math.floor((now - start) / (7 * 24 * 60 * 60 * 1000));
+  document.getElementById('weekBadge').textContent = `Semana ${diff + 1}`;
+}
+
+// ==================== INIT ====================
+function init() {
+  loadState();
+  updateWeekBadge();
+
+  // Build all days
+  Object.keys(ROUTINES).forEach(day => buildExercises(day));
+
+  // Set today's day
+  const days = ['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
+  const today = days[new Date().getDay()];
+  switchDay(today);
+}
+
+init();
+</script>
+</body>
+</html>
